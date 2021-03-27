@@ -6,7 +6,7 @@ var app = (function () {
             this.y = y;
         }
     }
-
+    var numberconection = null;
     var stompClient = null;
 
     var addPointToCanvas = function (point) {
@@ -28,28 +28,34 @@ var app = (function () {
     };
 
 
+
     var connectAndSubscribe = function () {
-        console.info('Connecting to WS...');
-        var socket = new SockJS('/stompendpoint');
-        stompClient = Stomp.over(socket);
+        if ($("#number").val() != "") numberconection = $("#number").val();
+        console.log(numberconection);
+        if (numberconection != null) {
+            console.info('Connecting to WS...');
+            var socket = new SockJS('/stompendpoint');
+            stompClient = Stomp.over(socket);
 
-        //subscribe to /topic/TOPICXX when connections succeed
-        stompClient.connect({}, function (frame) {
-            console.log('Connected: ' + frame);
-            stompClient.subscribe('/topic/newpoint', function (eventbody) {
-                var theObject = JSON.parse(eventbody.body);
-                addPointToCanvas(theObject);
-                console.log(theObject);
+            //subscribe to /topic/TOPICXX when connections succeed
+            stompClient.connect({}, function (frame) {
+                console.log('Connected: ' + frame);
+                stompClient.subscribe(`/topic/newpoint.${numberconection}`, function (eventbody) {
+                    var theObject = JSON.parse(eventbody.body);
+                    addPointToCanvas(theObject);
+                    console.log(theObject);
+                });
             });
-        });
-
+        } else {
+            alert("Inserte primero un numero")
+        }
     };
 
-    
+
 
     var init = function () {
         //websocket connection
-        connectAndSubscribe();
+        //connectAndSubscribe();
         var canvas = document.getElementById("canvas");
         if (window.PointerEvent) {
             canvas.addEventListener("pointerdown", _addPoint);
@@ -86,14 +92,20 @@ var app = (function () {
     return {
 
         init: init,
-
+        connect: connectAndSubscribe,
         publishPoint: function (px, py) {
-            var pt = new Point(px, py);
-            console.info("publishing point at " + pt);
-            addPointToCanvas(pt);
+            if (numberconection != null) {
 
-            //publicar el evento
-            stompClient.send("/topic/newpoint", {}, JSON.stringify(pt));
+
+                var pt = new Point(px, py);
+                console.info("publishing point at " + pt);
+                addPointToCanvas(pt);
+
+                //publicar el evento
+                stompClient.send(`/topic/newpoint.${numberconection}`, {}, JSON.stringify(pt));
+            } else {
+                alert("Establesca primero una conexion");
+            }
         },
 
         disconnect: function () {
