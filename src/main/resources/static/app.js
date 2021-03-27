@@ -19,7 +19,7 @@ var app = (function () {
 
 
     var getMousePosition = function (evt) {
-        canvas = document.getElementById("canvas");
+        var canvas = document.getElementById("canvas");
         var rect = canvas.getBoundingClientRect();
         return {
             x: evt.clientX - rect.left,
@@ -27,7 +27,18 @@ var app = (function () {
         };
     };
 
-
+    var addPolygonToCanvas = function (puntos) {
+        var canvas = document.getElementById("canvas");
+        var c2 = canvas.getContext("2d");
+        c2.clearRect(0, 0, canvas.Width, canvas.height)
+        c2.beginPath();
+        c2.moveTo(puntos[0].x, puntos[0].y);
+        puntos.map(function (prue) {
+            c2.lineTo(prue.x, prue.y);
+        });
+        c2.closePath();
+        c2.fill();
+    };
 
     var connectAndSubscribe = function () {
         if ($("#number").val() != "") numberconection = $("#number").val();
@@ -43,6 +54,11 @@ var app = (function () {
                 stompClient.subscribe(`/topic/newpoint.${numberconection}`, function (eventbody) {
                     var theObject = JSON.parse(eventbody.body);
                     addPointToCanvas(theObject);
+                    console.log(theObject);
+                });
+                stompClient.subscribe(`/topic/newpolygon.${numberconection}`, function (eventbody) {
+                    var theObject = JSON.parse(eventbody.body);
+                    addPolygonToCanvas(theObject);
                     console.log(theObject);
                 });
             });
@@ -62,7 +78,7 @@ var app = (function () {
         }
         else {
             canvas.addEventListener("mousedown", function (event) {
-                canvas.addEventListener("pointerdown", addPoint);
+                canvas.addEventListener("pointerdown", _addPoint);
             });
         }
     };
@@ -102,7 +118,7 @@ var app = (function () {
                 addPointToCanvas(pt);
 
                 //publicar el evento
-                stompClient.send(`/topic/newpoint.${numberconection}`, {}, JSON.stringify(pt));
+                stompClient.send(`/app/newpoint.${numberconection}`, {}, JSON.stringify(pt));
             } else {
                 alert("Establesca primero una conexion");
             }
